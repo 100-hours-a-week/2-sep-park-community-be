@@ -15,7 +15,7 @@ const postsRouter = express.Router();
 const postStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         // 프로젝트 루트 기준으로 img/profile 디렉토리 설정
-        const dir = path.join(__dirname, "../../img/posts");
+        const dir = path.join(__dirname, '../../2-sep-park-community-fe/img/posts');
         cb(null, dir);
     },
     filename: (req, file, cb) => {

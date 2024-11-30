@@ -1,0 +1,57 @@
+[
+  {
+    "userId": 1,
+    "postId": 1,
+    "title": "123",
+    "content": "123",
+    "postImagePath": null,
+    "DateAt": "2024-11-29 00:55:19",
+    "likeCount": 0,
+    "commentCount": 1,
+    "viewCount": 11
+  },
+  {
+    "userId": 1,
+    "postId": 2,
+    "title": "234",
+    "content": "234324",
+    "postImagePath": "/img/posts/1.jpeg",
+    "DateAt": "2024-11-29 01:04:49",
+    "likeCount": 0,
+    "commentCount": 0,
+    "viewCount": 5
+  },
+  {
+    "userId": 2,
+    "postId": 3,
+    "title": "123123",
+    "content": "123123",
+    "postImagePath": null,
+    "DateAt": "2024-11-30 21:13:20",
+    "likeCount": 0,
+    "commentCount": 0,
+    "viewCount": 6
+  },
+  {
+    "userId": 3,
+    "postId": 4,
+    "title": "호올란",
+    "content": "ㅎㅇㄹ",
+    "postImagePath": "/img/posts/홀란드.jpeg",
+    "DateAt": "2024-11-30 01:20:28",
+    "likeCount": 1,
+    "commentCount": 1,
+    "viewCount": 9
+  },
+  {
+    "userId": 1,
+    "postId": 5,
+    "title": "제이슨경로 잘 바뀌었니?",
+    "content": "ㅎㅎ",
+    "postImagePath": "/img/posts/image.png",
+    "DateAt": "2024-11-30 01:31:43",
+    "likeCount": 0,
+    "commentCount": 0,
+    "viewCount": 0
+  }
+]

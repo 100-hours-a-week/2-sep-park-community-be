@@ -8,10 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 데이터 경로 설정
-const likePath = path.join(__dirname, '../../likes.json');
-const userPath = path.join(__dirname, '../../users.json');
-const postPath = path.join(__dirname, '../../posts.json');
-const commentsPath = path.join(__dirname, '../../comments.json'); // 댓글 데이터 경로
+const likePath = path.join(__dirname, '../..//2-sep-park-community-be/models/likes.json');
+const userPath = path.join(__dirname, "../../2-sep-park-community-be/models/users.json");
+const postPath = path.join(__dirname, '../../2-sep-park-community-be/models/posts.json');
+const commentsPath = path.join(__dirname, '../../2-sep-park-community-be/models/comments.json');
 //const fileSystem = require("fs");
 // 게시글 데이터 읽기 함수
 const readPosts = async () => {
