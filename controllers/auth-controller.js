@@ -45,7 +45,7 @@ const postSignup =async (req, res) => {
         res.status(500).json({ message: "서버에서 문제가 발생했습니다." });
     }
 };
-
+//로그인
 const postLogin = async (req, res) => {
     const { email, password } = req.body;
 

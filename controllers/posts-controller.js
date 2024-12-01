@@ -400,6 +400,7 @@ const putComments = async (req, res) => {
     const { postId, commentId } = req.params;
     const userId = req.session?.user?.userId; // 세션에서 userId 가져오기
     const {text} = req.body;
+    console.log("userId:", userId);
     console.log("게시글 정보:", postId);
     console.log("댓글 정보:", commentId);
     console.log("수정 댓글내용:", text);

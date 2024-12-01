@@ -33,7 +33,7 @@ usersRouter.put("/:userId",upload.single('profileImage'),usersController.putInfo
 usersRouter.delete("/:userId",usersController.deleteInfo)
 //회원 비밀번호 수정
 usersRouter.put("/:userId/password",usersController.putPassword);
-
+usersRouter.get("/name/check?",usersController.getCheckName);
 usersRouter.get("/test",usersController.getTest);
 // ES6 방식으로 내보내기
 export default usersRouter;
