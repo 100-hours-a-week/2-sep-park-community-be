@@ -1,16 +1,1 @@
-[
-  {
-    "commentId": 1,
-    "postId": 1,
-    "userId": 1,
-    "content": "1323",
-    "dateAt": "2024-11-30 22:01:16"
-  },
-  {
-    "commentId": 2,
-    "postId": 4,
-    "userId": 3,
-    "content": "ㅎㅇ123",
-    "dateAt": "2024-11-30 01:22:43"
-  }
-]
+[]

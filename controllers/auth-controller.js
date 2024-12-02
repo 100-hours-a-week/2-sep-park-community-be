@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 데이터 경로 설정
-const userPath = path.join(__dirname, "../../2-sep-park-community-be/models/users.json");
+const userPath = path.join(__dirname, "../models/users.json");
 
 // 회원가입
 const postSignup =async (req, res) => {

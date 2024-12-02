@@ -14,8 +14,7 @@ const usersRouter = express.Router();
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         // 프로젝트 루트 기준으로 img/profile 디렉토리 설정
-        const dir = path.join(__dirname, "../../img/profile");
-
+        const dir = path.join(__dirname, '../../2-sep-park-community-fe/img/profile');
         cb(null, dir);
     },
     filename: (req, file, cb) => {

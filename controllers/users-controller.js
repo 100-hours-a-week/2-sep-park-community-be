@@ -8,9 +8,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 데이터 경로 설정
-const userPath = path.join(__dirname, "../../2-sep-park-community-be/models/users.json");
-const postPath = path.join(__dirname, '../../2-sep-park-community-be/models/posts.json');
-const commentsPath = path.join(__dirname, '../../2-sep-park-community-be/models/comments.json');
+const userPath = path.join(__dirname, "../models/users.json");
+const postPath = path.join(__dirname, '../models/posts.json');
+const commentsPath = path.join(__dirname, '../models/comments.json');
 
 
 //const {postSignup} = require("./auth-controller");

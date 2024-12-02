@@ -8,10 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 데이터 경로 설정
-const likePath = path.join(__dirname, '../..//2-sep-park-community-be/models/likes.json');
-const userPath = path.join(__dirname, "../../2-sep-park-community-be/models/users.json");
-const postPath = path.join(__dirname, '../../2-sep-park-community-be/models/posts.json');
-const commentsPath = path.join(__dirname, '../../2-sep-park-community-be/models/comments.json');
+const likePath = path.join(__dirname, '../models/likes.json');
+const userPath = path.join(__dirname, "../models/users.json");
+const postPath = path.join(__dirname, '../models/posts.json');
+const commentsPath = path.join(__dirname, '../models/comments.json');
 //const fileSystem = require("fs");
 // 게시글 데이터 읽기 함수
 const readPosts = async () => {
@@ -79,6 +79,9 @@ const getPosts = async (req, res) => {
 
 //게시글상세조회
 const getPost = async (req, res) => {
+    if(!req.session.user){
+        return res.status(401).json({ message: 'Unauthorized' }); // 로그인이 필요함
+    }
     try {
         const {postId} =req.params;
         console.log('Received postId:', postId);
@@ -224,7 +227,7 @@ const editPost = async (req, res) => {
         }
 
         // 파일 경로 설정 (새 파일 업로드 여부 확인)
-        const postImagePath = uploadedFile ? `/posts/${uploadedFile.filename}` : posts[postIndex].postImagePath;
+        const postImagePath = uploadedFile ? `/img/posts/${uploadedFile.filename}` : posts[postIndex].postImagePath;
 
         // 게시글 데이터 업데이트
         posts[postIndex] = {
@@ -293,7 +296,7 @@ const getComments = async (req, res) => {
     try {
     const { postId } = req.params; // 게시글 ID
     if (!req.session.user) {
-        return res.status(401).json({ message: 'Unauthorized' }); // 로그인이 필요함
+        return res.status(401).json({ message: '로그인이 필요합니다.' }); // 로그인이 필요함
     }
 
 
