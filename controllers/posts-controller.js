@@ -423,9 +423,11 @@ const putComments = async (req, res) => {
             // 댓글이 존재하지 않는 경우
             return res.status(404).json({ message: "해당 댓글을 찾을 수 없습니다." });
         }
-
+        console.log("댓글 작성자 아이디 비교",comment.userId);
+        console.log("유저 아이디 비교",userId);
         // 4. 댓글 작성자와 현재 유저 비교
         if (comment.userId !== userId) {
+            console.log("403 반환 조건 충족");
             return res.status(403).json({ message: "댓글 수정 권한이 없습니다." });
         }
         // 5. 댓글 수정
