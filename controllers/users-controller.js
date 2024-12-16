@@ -2,18 +2,10 @@ import path from 'path';
 import { promises as fsPromises } from 'fs'; // 비동기 파일 작업용
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
-
+import db from '../config/db.js'; // 데이터베이스 연결 불러오기
 // __dirname 설정
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// 데이터 경로 설정
-const userPath = path.join(__dirname, "../models/users.json");
-const postPath = path.join(__dirname, '../models/posts.json');
-const commentsPath = path.join(__dirname, '../models/comments.json');
-
-
-//const {postSignup} = require("./auth-controller");
 
 const postLogout = (req,res)=>{
     req.session.destroy(err => {
@@ -25,7 +17,7 @@ const postLogout = (req,res)=>{
         res.status(200).json({message: "로그아웃 성공"});
     });
 };
-// info 수정기능 (우선은 닉네임만 변경 가능)
+// info 수정기능
 const putInfo = async (req, res) => {
     try {
         const userId = req.session.user.userId;
@@ -34,45 +26,63 @@ const putInfo = async (req, res) => {
             return res.status(401).json({ message: "로그인이 필요합니다." });
         }
 
-        // 파일 읽어오기
-        const rawUsers = await fsPromises.readFile(userPath, "utf-8");
+        // 유저 조회
+        const  [userResults] = await db.execute(
+            "SELECT * FROM users WHERE id = ? ",
+            [userId]
+        );
+        const user = userResults[0];
 
-        // JSON 파싱
-        const users = JSON.parse(rawUsers);
-
-        // 유저 찾기
-        console.log(users);
-        console.log("userId 타입:", typeof userId, "값:", userId);
-
-        const user = users.find(u => u.userId === Number(userId));
         if (!user) {
             return res.status(404).json({ message: "해당 유저를 찾을 수 없습니다." });
         }
 
-        // 닉네임 변경 (요청에 name이 있으면 업데이트)
-        if (req.body.name) {
-            user.name = req.body.name;
+        if(req.body.name){
+            const newName = req.body.name;
+            // 현재 닉네임과 동일한지 확인
+            if (user.name === newName) {
+                return res.status(409).json({ message: "현재 닉네임과 동일한 이름입니다." });
+            }
+            //닉네임 중복 체크
+            const [nameCheckResult] = await db.execute(
+                "SELECT * FROM users WHERE name = ? AND id != ?" ,
+                [newName,userId]
+            );
+            if(nameCheckResult.length>0){
+                return res.status(409).json({message:"닉네임 중복"});
+            }
+            user.name=newName
         }
 
         // 프로필 사진 변경 (파일이 업로드된 경우에만 업데이트)
         if (req.file) {
             const profileImagePath = `/img/profile/${req.file.filename}`;
-            user.profileImagePath = profileImagePath;
+            user.profile_image = profileImagePath;
         }
 
-        // 변경된 데이터를 파일에 저장
-        await fsPromises.writeFile(userPath, JSON.stringify(users, null, 2), "utf-8");
 
+
+        await db.execute(
+            "UPDATE users SET name = ?, profile_image =? WHERE id = ?",
+            [user.name, user.profile_image, userId],
+        );
+        req.session.user.profileImg=user.profile_image;
+        req.session.user.nickname = user.name;
         // 클라이언트에 응답 반환
         return res.status(200).json({
             message: "이름이 성공적으로 변경되었습니다.",
-            user, // 변경된 유저 정보 반환
+            user: {
+                id: userId,
+                name: user.name,
+                profileImage: user.profile_image,
+            },
         });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ message: "서버 오류가 발생했습니다." });
     }
 };
+
 const putPassword = async (req, res) => {
     try {
         const userId = req.session.user.userId;
@@ -86,31 +96,25 @@ const putPassword = async (req, res) => {
             return res.status(400).json({ message: "유효한 비밀번호를 입력해주세요. (최소 8자)" });
         }
 
-        // 새 비밀번호 해싱
-        const newPassword = bcrypt.hashSync(password, 10);
+        // 새 비밀번호 해싱 (비동기 방식)
+        const newPassword = await bcrypt.hash(password, 10);
 
-        // 파일 읽기
-        const rawUsers = await fsPromises.readFile(userPath, "utf-8");
-
-        // JSON 파싱
-        const users = JSON.parse(rawUsers);
-
-        // 유저 찾기
-        console.log("전체 유저 데이터:", users);
-        const user = users.find(u => u.userId === Number(userId));
-        if (!user) {
-            return res.status(404).json({ message: "해당 유저를 찾을 수 없습니다." });
+        // 유저 조회
+        const [userResults] = await db.execute(
+            "SELECT * FROM users WHERE id = ? ",
+            [userId]
+        )
+        //유저 조회 못할경우
+        if (userResults.length === 0) {
+            return res.status(404).json({ message: "유저를 찾을 수 없습니다." });
         }
 
-        // 비밀번호 변경
-        user.password = newPassword;
 
-        // 변경 후 데이터 확인
-        console.log("변경된 유저 데이터:", user);
-
-        // 변경된 데이터를 파일에 저장
-        await fsPromises.writeFile(userPath, JSON.stringify(users, null, 2), "utf-8");
-
+        // 비번 업데이트
+        await db.execute(
+            "UPDATE users SET password = ? WHERE id =?",
+            [newPassword,userId]
+        )
         // 클라이언트에 성공 응답
         return res.status(200).json({ message: "비밀번호가 성공적으로 변경되었습니다." });
     } catch (err) {
@@ -125,24 +129,17 @@ const deleteInfo = async (req, res) => {
         if (!userId) {
             return res.status(404).json({message: "해당 유저를 찾을 수 없습니다."});
         }
-        // users,댓글,게시글데이터 가져오기
-        const rawUsers = await fsPromises.readFile(userPath, "utf-8");
-        const rawPosts = await fsPromises.readFile(postPath, "utf-8");
-        const rawComments= await  fsPromises.readFile(commentsPath, 'utf-8');
-        // JSON 파싱
-        const users = JSON.parse(rawUsers);
-        const posts = JSON.parse(rawPosts);
-        const comments = JSON.parse(rawComments);
+        const [userResults] = await db.execute(
+            "SELECT * FROM users WHERE id = ? ",
+            [userId]
+        );
+        const user = userResults[0];
 
-        // 유저id와 관련된 게시글  삭제(특정 유저 제외하고 반환)
-        const updatePosts = posts.filter(u => u.userId !== Number(userId));
-        const updatedComments = comments.filter(u => u.userId !== Number(userId));
-        const updatedUsers = users.filter(u => u.userId !== Number(userId));
-        console.log(updatedUsers);
-        //데이터 저장
-        await fsPromises.writeFile(userPath, JSON.stringify(updatedUsers, null, 2), "utf-8");
-        await fsPromises.writeFile(postPath, JSON.stringify(updatePosts, null, 2), "utf-8");
-        await fsPromises.writeFile(commentsPath, JSON.stringify(updatedComments, null, 2), "utf-8");
+        // 데이터베이스에서 관련 데이터 삭제 (댓글 -> 게시글 -> 유저 순서)
+        await db.execute("DELETE FROM comments WHERE user_id = ?", [userId]);
+        await db.execute("DELETE FROM posts WHERE user_id = ?", [userId]);
+        await db.execute("DELETE FROM users WHERE id = ?", [userId]);
+
         // 이미지도 지워야하네 생각해보니(안지워도 작동은 되지만)
         return res.status(204).json({message: "회원정보가 정상적으로 삭제되었습니다."});
     }
@@ -151,40 +148,10 @@ const deleteInfo = async (req, res) => {
     return res.status(500).json({ message: "서버 오류가 발생했습니다." });
 }
 };
-const getCheckName = async (req, res) => {
-    const editName = req.query.name; // 쿼리 파라미터에서 값 가져오기
-    console.log("닉네임 확인 요청:", editName);
-    try {
-        // 유저 데이터 가져오기
-        const rawUsers = await fsPromises.readFile(userPath, "utf-8");
-        const users = JSON.parse(rawUsers || "[]");
-
-        // 닉네임 중복 확인
-        const isDuplicate = users.some(user => user.name === editName);
-
-         if (isDuplicate) {
-             return res.status(409).json({ message: "이미 사용 중인 닉네임입니다." });
-         }
-        // 사용 가능한 닉네임
-        res.status(200).json({ message: "사용 가능한 닉네임입니다." });
-
-    } catch (error) {
-        console.error("유저 데이터 로드중 오류발생:", error);
-        res.status(500).json({ message: "서버 오류가 발생했습니다." });
-    }
-};
-const getTest= async (req, res) => {
-    console.log("세션 데이터:", req.session.user);
-    res.send("확인");
-}
-
-
 const usersController ={
     postLogout,
     putInfo,
     putPassword,
-    deleteInfo,
-    getCheckName,
-    getTest
+    deleteInfo
 }
 export default usersController;

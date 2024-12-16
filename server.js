@@ -5,6 +5,7 @@ import cors from 'cors';
 import session from 'express-session';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import db from './config/db.js';
 import multer from "multer";
 // 라우트
 import usersRouter from './routes/users-router.js';
@@ -62,6 +63,18 @@ app.use(express.urlencoded({ extended: true })); // URL-encoded 데이터 파싱
 app.use("/users", usersRouter);
 app.use("/auth", authRouter);
 app.use("/posts", postsRouter);
+
+// DB 연결 확인
+db.getConnection()
+    .then(connection => {
+        console.log('Connected to MySQL database');
+        connection.release(); // 풀에서 연결 해제
+    })
+    .catch(err => {
+        console.error('Unable to connect to the database:', err);
+        process.exit(1); // 연결 실패 시 서버 종료
+    });
+
 //-- 서버 실행
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
