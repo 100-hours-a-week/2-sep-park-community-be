@@ -468,9 +468,6 @@ const getLike = async (req, res) => {
     const {postId} = req.params;
 
     try {
-
-
-
         // 게시글 존재 여부 확인
         const [postResults] = await db.execute(
             "SELECT * FROM posts WHERE id = ?",
