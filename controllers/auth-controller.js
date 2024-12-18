@@ -24,6 +24,26 @@ const postSignup =async (req, res) => {
             return res.status(400).json({ message: "필수 입력값이 누락되었습니다." });
         }
 
+        // 이메일 중복 확인
+        const [emailRows] = await db.execute(
+            "SELECT COUNT(*) AS count FROM users WHERE email = ?",
+            [email]
+        );
+
+        if (emailRows[0].count > 0) {
+            return res.status(400).json({ message: "이메일이 존재합니다." });
+        }
+
+        // 이름 중복 확인
+        const [nameRows] = await db.execute(
+            "SELECT COUNT(*) AS count FROM users WHERE name = ?",
+            [name]
+        );
+
+        if (nameRows[0].count > 0) {
+            return res.status(400).json({ message: "이름이 존재합니다." });
+        }
+
         const encryptedPassword = await bcrypt.hash(password, 10);
 
         // 데이터베이스에 사용자 추가
