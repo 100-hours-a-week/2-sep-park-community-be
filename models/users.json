@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "userId": 1,
+    "email": "dytpq0978@naver.com",
+    "password": "$2b$10$DCSiLmfeBw/VJ8nBbIa/yuYgIKqEwNE/hXnSTeRrYBzH2tGzPdd12",
+    "name": "퉤스트",
+    "profileImagePath": "/img/profile/1.jpeg"
+  }
+]

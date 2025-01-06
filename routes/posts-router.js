@@ -49,7 +49,7 @@ postsRouter.delete("/:postId/comments/:commentId",postsController.deleteComments
 postsRouter.get("/:postId/like",postsController.getLike);
 //좋아요 취소하기
 postsRouter.delete("/:postId/like",postsController.DeleteLike);
-//댓글 목록 조회
+//좋아요 상태 확인
 postsRouter.get("/:postId/like/likeCheck",postsController.getLikeCheck);
 // ES6 방식으로 내보내기
 export default postsRouter;

@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "commentId": 1,
+    "postId": 1,
+    "userId": 1,
+    "content": "댓글생성 1",
+    "dateAt": "2024-12-10 14:20:58"
+  },
+  {
+    "commentId": 2,
+    "postId": 1,
+    "userId": 1,
+    "content": "댓글 생성 2",
+    "dateAt": "2024-12-10 14:21:03"
+  }
+]

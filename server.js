@@ -21,7 +21,7 @@ const app = express();
 
 // CORS 설정
 app.use(cors({
-    origin: 'http://3.83.156.215:3000', // 허용할 도메인 (프론트엔드 URL)
+    origin: 'http://localhost:3000', // 허용할 도메인 (프론트엔드 URL)
     methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'], // 허용할 HTTP 메서드
     credentials: true, // 쿠키, 인증 정보 허용
 }));
@@ -43,6 +43,7 @@ app.use(
 
 //정적 파일 제공
 app.use(express.static(path.join(__dirname, 'public'))); //
+app.use(express.static(path.join(__dirname)));
 app.use('/img/profile', express.static(path.join(__dirname,"../img/profile"))); // 업로드된 파일 정적 제공
 app.use('/img/posts', express.static(path.join(__dirname, "../img/posts"))); //
 

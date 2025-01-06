@@ -71,6 +71,7 @@ const getPost = async (req, res) => {
                 posts.id AS postId,
                 posts.title AS title,
                 posts.body AS content,
+                posts.user_id AS userId,
                 posts.post_image AS postImagePath,
                 DATE_FORMAT(posts.created_at, '%Y-%m-%d %H:%i:%s') AS dateAt,
                 posts.like_count AS likeCount,
@@ -257,6 +258,7 @@ const getComments = async (req, res) => {
             SELECT 
                 comments.id AS commentId,
                 comments.content AS content,
+                comments.user_id AS userId,
                 DATE_FORMAT(comments.created_at, '%Y-%m-%d %H:%i:%s') AS dateAt,
                 users.name AS author,
                 users.profile_image AS profile_image
