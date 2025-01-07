@@ -19,9 +19,13 @@ const __dirname = path.dirname(__filename);
 // Express 앱 초기화
 const app = express();
 
+const allowedOrigins = [
+    'http://localhost:3000',  // 로컬 개발 환경
+    'http://18.212.253.92:3000' // EC2 프론트엔드 환경
+];
 // CORS 설정
 app.use(cors({
-    origin: 'http://localhost:3000', // 허용할 도메인 (프론트엔드 URL)
+    origin: allowedOrigins, // 허용할 도메인 (프론트엔드 URL)
     methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'], // 허용할 HTTP 메서드
     credentials: true, // 쿠키, 인증 정보 허용
 }));
