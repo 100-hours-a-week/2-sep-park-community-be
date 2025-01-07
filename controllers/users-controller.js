@@ -134,11 +134,12 @@ const deleteInfo = async (req, res) => {
             [userId]
         );
         const user = userResults[0];
-
+        res.clearCookie('connect.sid'); // 세션 쿠키 삭제
         // 데이터베이스에서 관련 데이터 삭제 (댓글 -> 게시글 -> 유저 순서)
         await db.execute("DELETE FROM comments WHERE user_id = ?", [userId]);
         await db.execute("DELETE FROM posts WHERE user_id = ?", [userId]);
         await db.execute("DELETE FROM users WHERE id = ?", [userId]);
+
 
         // 이미지도 지워야하네 생각해보니(안지워도 작동은 되지만)
         return res.status(204).json({message: "회원정보가 정상적으로 삭제되었습니다."});

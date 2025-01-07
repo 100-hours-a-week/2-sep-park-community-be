@@ -552,7 +552,7 @@ const getPostImg = async (req, res) => {
     try {
         // 데이터베이스에서 이미지 경로만 조회
         const [postResults] = await db.execute(
-            "SELECT post_image AS postImagePath FROM posts WHERE id = ?",
+            "SELECT post_image AS postImagePath, title, body FROM posts WHERE id = ?",
             [postId]
         );
 
@@ -560,9 +560,10 @@ const getPostImg = async (req, res) => {
             return res.status(404).json({ message: "게시글을 찾을 수 없습니다." });
         }
 
-        const { postImagePath } = postResults[0];
+        const { postImagePath, title, body } = postResults[0];
 
-        res.status(200).json({ postImagePath });
+        res.status(200).json({ postImagePath, title, body });
+
     } catch (error) {
         console.error("이미지 데이터 조회 중 오류 발생:", error);
         res.status(500).json({ message: "서버 오류가 발생했습니다." });

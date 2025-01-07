@@ -31,7 +31,7 @@ postsRouter.get("/",postsController.getPosts);
 postsRouter.get("/:postId",postsController.getPost);
 //게시글 작성
 postsRouter.post("/",uploadPostImg.single("postImg"),postsController.postPost);
-//게시글 이미지 불러오기
+//게시글 이미지(데이터) 불러오기
 postsRouter.get("/:postId/postImg",postsController.getPostImg);
 //게시글 수정
 postsRouter.put("/:postId",uploadPostImg.single("editPostImg"),postsController.editPost);
