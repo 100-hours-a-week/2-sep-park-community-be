@@ -21,7 +21,7 @@ const app = express();
 
 const allowedOrigins = [
     'http://localhost:3000',  // 로컬 개발 환경
-    'http://18.212.253.92:3000' // EC2 프론트엔드 환경
+    'http://3.35.209.123:3000' // EC2 프론트엔드 환경
 ];
 // CORS 설정
 app.use(cors({
