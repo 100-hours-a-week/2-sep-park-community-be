@@ -289,23 +289,26 @@ const getComments = async (req, res) => {
 
 
 const postComments = async (req, res) => {
+    const connection = await db.getConnection(); // 트랜잭션 객체 생성
     try {
-        console.log("요청 데이터:", req.body); // 요청 데이터 확인
-        const {postId} = req.params; // 게시글 ID
-        const userId = req.session?.user?.userId; // 세션에서 userId 가져오기
-        const {text} = req.body; // 요청 본문에서 댓글 내용 가져오기
+        console.log("요청 데이터:", req.body);
 
-        console.log("userId:", userId);
-        console.log("댓글 내용:", text);
+        const { postId } = req.params;
+        const userId = req.session?.user?.userId;
+        const { text } = req.body;
 
-        // 로그인 확인
         if (!userId) {
-            return res.status(401).json({message: "로그인이 필요합니다."});
+            return res.status(401).json({ message: "로그인이 필요합니다." });
         }
 
+        if (!text || text.trim() === '') {
+            return res.status(400).json({ message: "댓글 내용이 비어있습니다." });
+        }
+
+        await connection.beginTransaction(); // 트랜잭션 시작
 
         // 1. 댓글 삽입
-        const [insertResult] = await db.execute(
+        const [insertResult] = await connection.execute(
             `
             INSERT INTO comments (post_id, user_id, content, created_at)
             VALUES (?, ?, ?, NOW())
@@ -314,7 +317,7 @@ const postComments = async (req, res) => {
         );
 
         // 2. 댓글 카운트 업데이트
-        const [updateResult] = await db.execute(
+        await connection.execute(
             `
             UPDATE posts
             SET comment_count = comment_count + 1
@@ -323,74 +326,112 @@ const postComments = async (req, res) => {
             [postId]
         );
 
-        // 작성된 댓글 데이터 반환
-        const newComment = {
-            commentId: insertResult.insertId, // DB에서 생성된 댓글 ID
-            postId: Number(postId),
-            userId,
-            content: text.trim(),
-            dateAt,
-        };
+        // 3. 삽입된 댓글 데이터 가져오기
+        const [commentData] = await connection.execute(
+            `
+            SELECT c.id AS commentId, c.post_id AS postId, c.user_id AS userId, 
+            c.content, c.created_at AS dateAt,u.profile_image, u.name AS author
+            FROM comments c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.id = ?
+            `,
+            [insertResult.insertId]
+        );
 
+        await connection.commit(); // 트랜잭션 커밋
+
+        const newComment = commentData[0]; // 삽입된 댓글 데이터
+        console.log("백에서 생성된 댓글 데이터:", newComment); // 로그로 확인
         res.status(201).json({
             message: '댓글이 성공적으로 작성되었습니다.',
             comment: newComment,
         });
     } catch (error) {
+        await connection.rollback(); // 오류 발생 시 트랜잭션 롤백
         console.error('서버 오류 발생:', error.message);
-        res.status(500).json({message: '서버 오류: 댓글 작성 실패'});
+        res.status(500).json({ message: '서버 오류: 댓글 작성 실패' });
+    } finally {
+        connection.release(); // 연결 반환
     }
 };
+
 
 
 //댓글수정
 const putComments = async (req, res) => {
     try {
-        console.log("요청 URL:", req.originalUrl); // 요청된 URL 확인
-        console.log("req.params:", req.params); // 모든 params 확인
-        const {postId, commentId} = req.params;
+        console.log("요청 URL:", req.originalUrl);
+        console.log("req.params:", req.params);
+        const { postId, commentId } = req.params;
         const userId = req.session?.user?.userId; // 세션에서 userId 가져오기
-        const {text} = req.body;
+        const { text } = req.body;
+
         console.log("userId:", userId);
         console.log("게시글 정보:", postId);
         console.log("댓글 정보:", commentId);
         console.log("수정 댓글내용:", text);
+
         // 1. 유저 인증 확인
         if (!userId) {
-            return res.status(401).json({message: "로그인이 필요합니다."});
+            return res.status(401).json({ message: "로그인이 필요합니다." });
         }
+
+        // 2. 댓글 존재 여부 확인
         const [commentResults] = await db.execute(
-            "SELECT * FROM comments WHERE id =? AND post_id = ? ",
-            [commentId,postId]
-        )
+            "SELECT * FROM comments WHERE id = ? AND post_id = ?",
+            [commentId, postId]
+        );
         const comment = commentResults[0];
 
         if (!comment) {
-            // 댓글이 존재하지 않는 경우
-            return res.status(404).json({message: "해당 댓글을 찾을 수 없습니다."});
+            return res.status(404).json({ message: "해당 댓글을 찾을 수 없습니다." });
         }
 
         console.log("댓글 작성자 아이디 비교", comment.user_id);
         console.log("유저 아이디 비교", userId);
-        // 4. 댓글 작성자와 현재 유저 비교
+
+        // 3. 댓글 작성자와 현재 유저 비교
         if (comment.user_id !== userId) {
-            console.log("403 반환 조건 충족");
-            return res.status(403).json({message: "댓글 수정 권한이 없습니다."});
+            return res.status(403).json({ message: "댓글 수정 권한이 없습니다." });
         }
 
-        // 5. 댓글 수정
+        // 4. 댓글 수정
         await db.execute(
             "UPDATE comments SET content = ? WHERE id = ? AND post_id = ?",
-            [text,commentId,postId]
+            [text, commentId, postId]
         );
 
+        // 5. 수정된 댓글 데이터 조회 (users와 조인)
+        const [updatedCommentResults] = await db.execute(
+            `
+            SELECT c.id AS commentId, c.post_id AS postId, c.user_id AS userId, 
+                   c.content, u.profile_image, u.name AS author
+            FROM comments c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.id = ?
+            `,
+            [commentId]
+        );
 
-        return res.status(200).json({message: "댓글이 성공적으로 수정되었습니다."});
+        const updatedComment = updatedCommentResults[0];
+
+        if (!updatedComment) {
+            return res.status(404).json({ message: "수정된 댓글 데이터를 찾을 수 없습니다." });
+        }
+
+        console.log("수정된 댓글 데이터:", updatedComment);
+
+        return res.status(200).json({
+            message: "댓글이 성공적으로 수정되었습니다.",
+            comment: updatedComment,
+        });
     } catch (error) {
         console.error("댓글 수정 중 오류 발생:", error);
-        return res.status(500).json({message: "댓글 수정 중 문제가 발생했습니다."});
+        return res.status(500).json({ message: "댓글 수정 중 문제가 발생했습니다." });
     }
 };
+
+
 
 
 //댓글삭제
