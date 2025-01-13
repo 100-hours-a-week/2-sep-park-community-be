@@ -20,6 +20,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 const allowedOrigins = [
+    'http://3.35.209.123',    // 리버스 프록시로 인한 퍼블릭 IP
     'http://localhost:3000',  // 로컬 개발 환경
     'http://3.35.209.123:3000' // EC2 프론트엔드 환경
 ];
