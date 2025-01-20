@@ -329,8 +329,14 @@ const postComments = async (req, res) => {
         // 3. 삽입된 댓글 데이터 가져오기
         const [commentData] = await connection.execute(
             `
-            SELECT c.id AS commentId, c.post_id AS postId, c.user_id AS userId, 
-            c.content, c.created_at AS dateAt,u.profile_image, u.name AS author
+            SELECT 
+            c.id AS commentId,
+            c.post_id AS postId,
+            c.user_id AS userId, 
+            c.content, 
+            DATE_FORMAT(c.created_at, '%Y-%m-%d %H:%i:%s') AS dateAt,
+            u.profile_image,
+            u.name AS author
             FROM comments c
             JOIN users u ON c.user_id = u.id
             WHERE c.id = ?
