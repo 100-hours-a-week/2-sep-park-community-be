@@ -1,26 +1,17 @@
 // 회원가입 api에서 중복 체크를 분리하는게 좋을까
-
-import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
-import path from 'path';
 import { promises as fsPromises } from 'fs';
 import db from '../config/db.js'; // 데이터베이스 연결 불러오기
-// __dirname 설정
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 데이터 경로 설정(이제 전환 후 필요없는 데이터)
-const userPath = path.join(__dirname, "../models/users.json");
+import dotenv from "dotenv";
+dotenv.config();
+//const userPath = path.join(__dirname, "../models/users.json");
 
 // 회원가입
-const postSignup =async (req, res) => {
+const postSignup = async (req, res) => {
     try {
-        const { email, password, name } = req.body;
-        const profileImagePath = `/img/profile/${req.file.filename}`;
-        if (!req.file) {
-            return res.status(400).json({ message: "프로필 이미지가 업로드되지 않았습니다." });
-        }
-        if (!email || !password || !name) {
+        const { email, password, name, profileImageUrl } = req.body;
+
+        if (!email || !password || !name || !profileImageUrl) {
             return res.status(400).json({ message: "필수 입력값이 누락되었습니다." });
         }
 
@@ -53,11 +44,11 @@ const postSignup =async (req, res) => {
                 email,
                 encryptedPassword,
                 name,
-                profileImagePath
+                profileImageUrl // S3에서 업로드된 URL 저장
             ]
         );
 
-        res.status(201).json({ message: "회원가입이 완료되었습니다."});
+        res.status(201).json({ message: "회원가입이 완료되었습니다." });
     } catch (error) {
         console.error("서버 에러 발생:", error);
         res.status(500).json({ message: "서버에서 문제가 발생했습니다." });

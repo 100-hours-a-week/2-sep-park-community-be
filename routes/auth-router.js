@@ -2,29 +2,43 @@ import path from "path";
 import express from "express";
 import multer from "multer";
 import authController from "../controllers/auth-controller.js";
-import { fileURLToPath } from 'url';
-// __dirname 설정
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 //Router 생성
 const authRouter = express.Router();
-/// Multer 설정
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // 프로젝트 루트 기준으로 img/profile 디렉토리 설정
-        const dir = path.join(__dirname, '../../2-sep-park-community-fe/img/profile');
 
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8'); // 인코딩 변환
-        const sanitizedName = originalName.replace(/\s+/g, '_'); // 공백 제거 및 치환
-        cb(null, sanitizedName);
-    },
+const s3 = new S3Client({
+    region: process.env.AWS_REGION
 });
-const upload = multer({ storage });
+//  Presigned URL 생성 API
+authRouter.get('/presigned-url', async (req, res) => {
+    const { fileName, fileType } = req.query;
+
+    if (!fileName || !fileType) {
+        return res.status(400).json({ error: "fileName과 fileType을 제공해야 합니다." });
+    }
+
+    const s3Key = `profile/${Date.now()}-${fileName}`;
+
+    // AWS SDK v3에서 PutObjectCommand 사용
+    const command = new PutObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
+        Key: s3Key,
+        ContentType: fileType,
+        ACL: "public-read",
+    });
+
+    try {
+        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 60 }); // ✅ AWS SDK v3 방식
+        const fileUrl = `${process.env.CLOUDFRONT_URL}/${s3Key}`;
+        res.json({ uploadUrl, fileUrl });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Presigned URL 생성 실패" });
+    }
+});
 //회원가입
-authRouter.post("/signup", upload.single("profileImage"), authController.postSignup);
+authRouter.post("/signup", authController.postSignup);
 //로그인
 authRouter.post("/login",authController.postLogin);
 //이메일 중복 확인(아직 분리x)
