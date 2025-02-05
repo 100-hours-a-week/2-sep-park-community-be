@@ -147,5 +147,4 @@ const authController={
     getPresigned,
 
 }
-export default s3;
 export default authController;
