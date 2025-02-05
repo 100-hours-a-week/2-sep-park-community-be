@@ -10,33 +10,10 @@ const authRouter = express.Router();
 const s3 = new S3Client({
     region: process.env.AWS_REGION
 });
+
+
 //  Presigned URL 생성 API
-authRouter.get('/presigned-url', async (req, res) => {
-    const { fileName, fileType } = req.query;
-
-    if (!fileName || !fileType) {
-        return res.status(400).json({ error: "fileName과 fileType을 제공해야 합니다." });
-    }
-
-    const s3Key = `profile/${Date.now()}-${fileName}`;
-
-    // AWS SDK v3에서 PutObjectCommand 사용
-    const command = new PutObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET_NAME,
-        Key: s3Key,
-        ContentType: fileType,
-        ACL: "public-read",
-    });
-
-    try {
-        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 60 }); // ✅ AWS SDK v3 방식
-        const fileUrl = `${process.env.CLOUDFRONT_URL}/${s3Key}`;
-        res.json({ uploadUrl, fileUrl });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Presigned URL 생성 실패" });
-    }
-});
+authRouter.get('/presigned-url',authController. getPresigned);
 //회원가입
 authRouter.post("/signup", authController.postSignup);
 //로그인

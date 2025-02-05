@@ -56,44 +56,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname)));
 app.use('/img/profile', express.static(path.join(__dirname, "../img/profile")));
 app.use('/img/posts', express.static(path.join(__dirname, "../img/posts")));
-
-// S3 클라이언트 생성 (IAM 또는 환경 변수 사용)
+// 로컬이 아니므로 엑세스키 안씀
 const s3 = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: process.env.AWS_ACCESS_KEY_ID ? {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    } : undefined, // IAM 역할 자동 사용 가능
-});
-
-const CLOUDFRONT_URL = process.env.CLOUDFRONT_URL;  // ✅ 환경 변수에서 CloudFront URL 가져오기
-
-//  Presigned URL 생성 API (S3 업로드)
-app.get('/presigned-url', async (req, res) => {
-    const { fileName, fileType } = req.query;
-
-    if (!fileName || !fileType) {
-        return res.status(400).json({ error: "fileName과 fileType을 제공해야 합니다." });
-    }
-
-    const s3Key = `profile/${Date.now()}-${fileName}`; // 파일명을 고유하게 설정
-
-    // AWS SDK v3 방식 (PutObjectCommand 사용)
-    const command = new PutObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET_NAME,
-        Key: s3Key,
-        ContentType: fileType,
-        ACL: "public-read",
-    });
-
-    try {
-        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 600 }); //
-        const fileUrl = `${CLOUDFRONT_URL}/${s3Key}`;
-        res.json({ uploadUrl, fileUrl });
-    } catch (error) {
-        console.error("Presigned URL 생성 실패:", error);
-        res.status(500).json({ error: "Presigned URL 생성 실패" });
-    }
+    region: process.env.AWS_REGION, // IAM Role이 적용되므로 credentials는 불필요
 });
 
 // 로그 미들웨어

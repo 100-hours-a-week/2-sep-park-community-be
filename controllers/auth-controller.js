@@ -3,6 +3,9 @@ import bcrypt from 'bcrypt';
 import { promises as fsPromises } from 'fs';
 import db from '../config/db.js'; // 데이터베이스 연결 불러오기
 import dotenv from "dotenv";
+import {PutObjectCommand} from "@aws-sdk/client-s3";
+import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
+import authRouter from "../routes/auth-router.js";
 dotenv.config();
 //const userPath = path.join(__dirname, "../models/users.json");
 
@@ -107,12 +110,37 @@ const getEmailCheck = async (req, res) => {
 const getNameCheck = async (req, res) => {
     const rawUsers=await fsPromises.readFile(userPath, "utf-8");
 }
+const getPresigned =async (req, res) => {
+    const { fileName, fileType } = req.query;
+    if (!fileName || !fileType) {
+        return res.status(400).json({ error: "fileName과 fileType을 제공해야 합니다." });
+    }
+    const s3Key = `profile/${Date.now()}-${fileName}`;
+    // AWS SDK v3에서 PutObjectCommand 사용
+    const command = new PutObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET_NAME, // 여기서 Env파일 백엔드에 있는데 어케암?
+        Key: s3Key, // 너도 그렇고
+        ContentType: fileType, // 너는 상관없고
+        ACL: "public-read",
+    });
+
+    try {
+        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 60 }); // AWS SDK v3 방식
+        const fileUrl = `${process.env.CLOUDFRONT_URL}/${s3Key}`;
+        res.json({ uploadUrl, fileUrl });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Presigned URL 생성 실패" });
+    }
+};
 const authController={
     postSignup,
     postLogin,
     getSession,
     getEmailCheck,
-    getNameCheck
+    getNameCheck,
+    getPresigned,
+
 }
 
 export default authController;
