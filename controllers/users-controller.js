@@ -55,9 +55,8 @@ const putInfo = async (req, res) => {
         }
 
         // 프로필 사진 변경 (파일이 업로드된 경우에만 업데이트)
-        if (req.file) {
-            const profileImagePath = `/img/profile/${req.file.filename}`;
-            user.profile_image = profileImagePath;
+        if (req.body.profileImage) {
+            user.profile_image = req.body.profileImage;  // S3 URL을 DB에 저장
         }
 
 
@@ -66,6 +65,8 @@ const putInfo = async (req, res) => {
             "UPDATE users SET name = ?, profile_image =? WHERE id = ?",
             [user.name, user.profile_image, userId],
         );
+
+
         req.session.user.profileImg=user.profile_image;
         req.session.user.nickname = user.name;
         // 클라이언트에 응답 반환

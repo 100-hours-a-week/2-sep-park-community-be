@@ -1,19 +1,7 @@
-import path from "path";
 import express from "express";
-import multer from "multer";
 import authController from "../controllers/auth-controller.js";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 //Router 생성
 const authRouter = express.Router();
-
-const s3 = new S3Client({
-    region: process.env.AWS_REGION
-});
-
-
-//  Presigned URL 생성 API
-authRouter.get('/presigned-url',authController. getPresigned);
 //회원가입
 authRouter.post("/signup", authController.postSignup);
 //로그인

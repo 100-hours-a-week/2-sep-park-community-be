@@ -1,15 +1,9 @@
 import path from 'path';
-import {promises as fsPromises} from 'fs'; // 비동기 파일 작업용
 import {fileURLToPath} from 'url';
 import db from '../config/db.js';
 // __dirname 설정
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// 데이터 경로 설정
-const likePath = path.join(__dirname, '../models/likes.json');
-const postPath = path.join(__dirname, '../models/posts.json');
-
 
 
 const getPosts = async (req, res) => {
@@ -106,41 +100,44 @@ const getPost = async (req, res) => {
         });
     }
 };
-// 게시글 작성
+// 게시글 작성 (S3 Presigned URL 방식)
 const postPost = async (req, res) => {
     try {
-        const {title, content} = req.body;
+        const { title, content, postImg } = req.body; // postImg는 S3 URL
         const user = req.session?.user?.userId;
-        console.log("바디내용", title, content);
+
+        console.log("바디내용", title, content, postImg);
         console.log("유저", user);
+
         // 사용자 확인
         if (!req.session.user) {
-            return res.status(401).json({message: "로그인이 필요합니다."});
+            return res.status(401).json({ message: "로그인이 필요합니다." });
         }
-        // 유효성 검사(이것도 사실 필요없음)
-        if (!title || !content) {
-            return res.status(400).json({message: "제목과 내용을 입력해주세요."});
-        }
-        // 이미지 경로 설정
-        const postImagePath = req.file ? `/img/posts/${req.file.filename}` : null;
 
-        // 데이터베이스에 게시글 삽입
+        // 유효성 검사
+        if (!title || !content) {
+            return res.status(400).json({ message: "제목과 내용을 입력해주세요." });
+        }
+
+        // 데이터베이스에 게시글 삽입 (S3 이미지 URL 저장)
         const [result] = await db.execute(
             "INSERT INTO posts (title, body, user_id, post_image, created_at) VALUES (?, ?, ?, ?, NOW())",
-            [title, content, user, postImagePath]
+            [title, content, user, postImg] // postImg = S3 이미지 URL
         );
-        //post id 체크
+
+        // 생성된 게시글 ID
         const newPostId = result.insertId;
         console.log("새 게시글 ID:", newPostId);
+
         res.status(201).json({
             message: "게시글이 생성되었습니다.",
             post: {
                 id: newPostId,
                 title,
                 content,
-                userId: user.userId,
-                postImagePath,
-                createdAt: new Date().toISOString(), // 서버에서 현재 시간
+                userId: user,
+                postImagePath: postImg, // S3 URL 사용
+                createdAt: new Date().toISOString(),
                 likeCount: 0,
                 commentCount: 0,
                 viewCount: 0,
@@ -148,65 +145,63 @@ const postPost = async (req, res) => {
         });
     } catch (error) {
         console.error("게시글 작성 중 오류 발생:", error);
-        res.status(500).json({message: "서버에서 문제가 발생했습니다."});
+        res.status(500).json({ message: "서버에서 문제가 발생했습니다." });
     }
 };
+
 
 //// PUT: 게시글 수정
 const editPost = async (req, res) => {
     try {
-        const {postId} = req.params;
-        const updatedData = req.body;
-        const uploadedFile = req.file || null;
-        const userId = req.session?.user?.userId; // 세션에서 사용자 ID 추출
-        const { imageStatus } = updatedData; // 클라이언트에서 전달된 이미지 상태
+        const { postId } = req.params;
+        const { editTitle, editContent, postImg, imageStatus } = req.body;
+        const userId = req.session?.user?.userId;
 
         console.log(`postId: ${postId}`);
-        console.log('수정할 데이터:', updatedData);
-        console.log('업로드된 파일:', uploadedFile);
+        console.log("수정할 데이터:", { editTitle, editContent, postImg, imageStatus });
 
         // 데이터 유효성 검사
-        if (!updatedData.editTitle || !updatedData.editContent) {
-            return res.status(400).json({message: "제목과 내용을 모두 입력해주세요."});
+        if (!editTitle || !editContent) {
+            return res.status(400).json({ message: "제목과 내용을 모두 입력해주세요." });
         }
+
         // 게시글 가져오기
-        const [postResults] = await db.execute(
-            "SELECT * FROM posts WHERE id = ?",
-            [postId]
-        );
+        const [postResults] = await db.execute("SELECT * FROM posts WHERE id = ?", [postId]);
+        if (postResults.length === 0) {
+            return res.status(404).json({ message: "게시글을 찾을 수 없습니다." });
+        }
         const post = postResults[0];
+
         // 권한 확인
         if (post.user_id !== userId) {
-            return res.status(403).json({message: '게시글 수정 권한이 없습니다.'});
+            return res.status(403).json({ message: "게시글 수정 권한이 없습니다." });
         }
 
-        // 파일 경로 설정 (이미지 상태에 따라 처리)
-        let postImagePath = post.post_image;
-
-        if (imageStatus === "new" && uploadedFile) {
-            // 새 파일이 업로드된 경우
-            postImagePath = `/img/posts/${uploadedFile.filename}`;
-        } else if (imageStatus === "null") {
-            // 이미지 삭제 요청
-            postImagePath = null;
+        // 이미지 처리
+        let updatedPostImg = postImg;
+        if (imageStatus === "null") {
+            updatedPostImg = null; // 이미지 삭제
         }
 
+        // 게시글 수정
         await db.execute(
             "UPDATE posts SET title = ?, body = ?, post_image = ? WHERE id = ?",
-            [updatedData.editTitle, updatedData.editContent, postImagePath, postId]
+            [editTitle, editContent, updatedPostImg, postId]
         );
+
         // 성공 응답
         res.status(200).json({
-            message: '게시글이 성공적으로 수정되었습니다.', post: {
+            message: "게시글이 성공적으로 수정되었습니다.",
+            post: {
                 postId,
-                title: updatedData.editTitle,
-                content: updatedData.editContent,
-                postImagePath,
+                title: editTitle,
+                content: editContent,
+                postImagePath: updatedPostImg, // S3 URL 반환
             },
         });
     } catch (error) {
-        console.error('서버 오류 발생:', error);
-        res.status(500).json({message: '서버에서 문제가 발생했습니다.'});
+        console.error("게시글 수정 중 오류 발생:", error);
+        res.status(500).json({ message: "서버에서 문제가 발생했습니다." });
     }
 };
 

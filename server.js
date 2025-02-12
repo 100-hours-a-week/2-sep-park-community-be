@@ -1,33 +1,30 @@
-// Import
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import express from 'express';
 import dotenv from "dotenv";
 dotenv.config();
-
 const PORT = 4000;
 import cors from 'cors';
 import session from 'express-session';
-import { fileURLToPath } from 'url';
-import path from 'path';
 import db from './config/db.js';
-
+import path from "path";
+import { fileURLToPath } from "url";
 // 라우트
 import usersRouter from './routes/users-router.js';
 import postsRouter from './routes/posts-router.js';
 import authRouter from './routes/auth-router.js';
+import uploadRouter from "./routes/upload-router.js";
+const app = express();
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// __dirname 설정
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Express 앱 초기화
-const app = express();
 
 const allowedOrigins = [
-    'http://http://43.200.178.50/',    // 리버스 프록시로 인한 퍼블릭 IP
-    'http://localhost:3000',  // 로컬 개발 환경
-    'http://http://43.200.178.50/:3000' // EC2 프론트엔드 환경
+    process.env.DOMAIN_URL,
+    process.env.LOCAL_URL,
+    process.env.EC2_URL,
+    process.env.DOMAIN_URL
 ];
 
 // CORS 설정
@@ -56,10 +53,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname)));
 app.use('/img/profile', express.static(path.join(__dirname, "../img/profile")));
 app.use('/img/posts', express.static(path.join(__dirname, "../img/posts")));
-// 로컬이 아니므로 엑세스키 안씀
-const s3 = new S3Client({
-    region: process.env.AWS_REGION, // IAM Role이 적용되므로 credentials는 불필요
-});
 
 // 로그 미들웨어
 app.use((req, res, next) => {
@@ -75,7 +68,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/users", usersRouter);
 app.use("/auth", authRouter);
 app.use("/posts", postsRouter);
-
+app.use("/upload", uploadRouter);
 // DB 연결 확인
 db.getConnection()
     .then(connection => {

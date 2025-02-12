@@ -3,14 +3,7 @@ import bcrypt from 'bcrypt';
 import { promises as fsPromises } from 'fs';
 import db from '../config/db.js'; // 데이터베이스 연결 불러오기
 import dotenv from "dotenv";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import authRouter from "../routes/auth-router.js";
-// ✅ S3 클라이언트 생성 (IAM Role을 사용할 경우 credentials 생략)
-const s3 = new S3Client({ region: process.env.AWS_REGION });
-
 dotenv.config();
-//const userPath = path.join(__dirname, "../models/users.json");
 
 // 회원가입
 const postSignup = async (req, res) => {
@@ -82,6 +75,7 @@ const postLogin = async (req, res) => {
             userId: user.id,
             nickname: user.name,
             profileImg: user.profile_image,
+            profileImage: user.profile_image,
             email: user.email,
         };
 
@@ -98,10 +92,21 @@ const postLogin = async (req, res) => {
 
 // 세션 정보 반환
 const getSession = (req, res) => {
-    if (req.session && req.session.user) {
-        return res.status(200).json({ user: req.session.user });
+    const user = req.session?.user; // 세션에서 user 객체 가져오기
+
+    if (user) {
+        return res.status(200).json({
+            user: {
+                userId: user.userId,
+                email: user.email,
+                nickname: user.nickname,
+                profileImg: user.profileImg,
+                profileImage: user.profileImg,
+            }
+        });
     }
-    res.status(401).json({ message: "로그인 정보가 없습니다." });
+
+    return res.status(401).json({ error: "Unauthorized" });
 };
 
 
@@ -113,38 +118,13 @@ const getEmailCheck = async (req, res) => {
 const getNameCheck = async (req, res) => {
     const rawUsers=await fsPromises.readFile(userPath, "utf-8");
 }
-const getPresigned = async (req, res) => {
-    const { fileName, fileType } = req.query;
 
-    if (!fileName || !fileType) {
-        return res.status(400).json({ error: "fileName과 fileType을 제공해야 합니다." });
-    }
-
-    const s3Key = `profile/${Date.now()}-${fileName}`;
-    const command = new PutObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET_NAME,
-        Key: s3Key,
-        ContentType: fileType,
-        ACL: "public-read",
-    });
-
-    try {
-        // ✅ s3 객체를 올바르게 사용
-        const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 600 });
-        const fileUrl = `${process.env.CLOUDFRONT_URL}/${s3Key}`;
-        res.json({ uploadUrl, fileUrl });
-    } catch (error) {
-        console.error("Presigned URL 생성 실패:", error);
-        res.status(500).json({ error: "Presigned URL 생성 실패" });
-    }
-};
 const authController={
     postSignup,
     postLogin,
     getSession,
     getEmailCheck,
     getNameCheck,
-    getPresigned,
 
 }
 export default authController;
