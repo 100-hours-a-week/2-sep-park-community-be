@@ -44,7 +44,7 @@ app.use(
             httpOnly: true,
             secure: false,
             maxAge: 60 * 60 * 1000,
-            sameSite: 'None'//
+            sameSite: 'None' // 크로스 도메인 쿠키 허용
         },
     })
 );
